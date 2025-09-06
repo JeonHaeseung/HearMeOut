@@ -24,6 +24,9 @@ demo_train_eval_file: ${code_root}/result/demo_train_predict.jsonl
 dataset: clarity_demo_data          # 테스트용
 split: train
 
+aug_dataset: ${clarity_data_root}/clarity_data/aug
+aug_signals: signals
+
 train_dataset: ${clarity_data_root}/clarity_data/train
 train_metadata: ${clarity_data_root}/clarity_data/metadata/CPC3.train_sharp.json
 train_references: references
