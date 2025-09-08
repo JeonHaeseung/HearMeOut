@@ -58,4 +58,4 @@ def process_json(input_file, output_file):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 if __name__ == "__main__":
-    process_json("/scratch2/clarity/whisper/dataJson/CPC3.train.json", "/scratch2/clarity/whisper/dataJson/output.json")
+    process_json("input_file_path", "output_file_path")
