@@ -1,5 +1,5 @@
 # 코드 루트 경로
-code_root: /root/to/your/code       # 변경 필수
+code_root: /home/cathyjeon/ALL_EnTrans_MODEL/EnTrans       # 변경 필수
 
 # 데이터 루트 경로
 clarity_data_root: /scratch/CPC_data/CPC3/clarity_CPC3_data
@@ -41,6 +41,9 @@ demo_train_dataset: ${clarity_data_root}/clarity_demo_data/train
 demo_train_metadata: ${clarity_data_root}/clarity_demo_data/metadata/CPC3.train.json
 demo_train_references: references
 demo_train_signals: signals
+
+aug_dataset: ${clarity_data_root}/aug
+aug_signals: signals
 
 # 모델 설정들
 sample_rate: 16000
