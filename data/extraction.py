@@ -1,3 +1,9 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import os
 import json
 import glob
@@ -11,7 +17,7 @@ from datasets import Dataset, DatasetDict, load_from_disk
 from transformers import WhisperFeatureExtractor
 
 import parmap
-from clarity.utils.file_io import read_signal
+from utils.file_io import read_signal
 from omegaconf import OmegaConf
 
 import numpy as np
@@ -45,7 +51,10 @@ def process_file(wav, metadata_path, sample_rate):
     signal_array = read_signal(filename=wav, sample_rate=sample_rate)
     L_array = signal_array[:, 0]
     R_array = signal_array[:, 1]
+
     signal_name = Path(wav).stem
+    signal_name = signal_name.split("_aug")[0]
+
     correctness = read_response(metadata_path, signal_name)
 
     signal_point = {
@@ -72,7 +81,10 @@ def prepare_dataset(batch, L_feature_extractor, R_feature_extractor):
 
 
 def load_dataset(cfg):
-    wavs = glob.glob(os.path.join(cfg.train_dataset, cfg.train_signals, "*.wav"), recursive=True)
+    wavs_aug = glob.glob(os.path.join(cfg.aug_dataset, cfg.aug_signals, "*.wav"), recursive=True)
+    wavs_ori = glob.glob(os.path.join(cfg.train_dataset, cfg.train_signals, "*.wav"), recursive=True)
+    wavs = wavs_aug + wavs_ori
+
     if N_SAMPLES is not None:
         wavs = wavs[:N_SAMPLES]
 
@@ -80,7 +92,7 @@ def load_dataset(cfg):
 
     process_file_args = partial(
         process_file,
-        metadata_path=cfg.train_metadata,
+        metadata_path=cfg.aug_metadata,
         sample_rate=cfg.sample_rate,
     )
     parmap.map(process_file_args, wavs, pm_pbar=True, pm_processes=multiprocessing.cpu_count())
@@ -109,17 +121,20 @@ def extract_features(dataset_dict, L_feature_extractor, R_feature_extractor):
 
 @hydra.main(config_path="..", config_name="config", version_base=None)
 def main(cfg: DictConfig):
-    os.makedirs(cfg.feature_root, exist_ok=True)
+    os.makedirs(f"{cfg.feature_root}_aug", exist_ok=True)
+    print(f"{cfg.feature_root}_aug")
+    print(f"{cfg.model_L_whisper_root}_aug")
+    print(f"{cfg.model_R_whisper_root}_aug")
 
     logger.info("Loading Whisper feature extractors")
-    L_extractor = WhisperFeatureExtractor.from_pretrained(cfg.model_L_whisper_root)
-    R_extractor = WhisperFeatureExtractor.from_pretrained(cfg.model_R_whisper_root)
+    L_extractor = WhisperFeatureExtractor.from_pretrained(f"{cfg.model_L_whisper_root}_aug")
+    R_extractor = WhisperFeatureExtractor.from_pretrained(f"{cfg.model_R_whisper_root}_aug")
 
     dataset_dict = load_dataset(cfg)
     feature_dataset = extract_features(dataset_dict, L_extractor, R_extractor)
 
-    logger.info(f"Saving dataset to {cfg.feature_root}")
-    feature_dataset.save_to_disk(cfg.feature_root)
+    logger.info(f"Saving dataset to {cfg.feature_root}_aug")
+    feature_dataset.save_to_disk(f"{cfg.feature_root}_aug")
 
     logger.info("Dataset saved successfully")
 
