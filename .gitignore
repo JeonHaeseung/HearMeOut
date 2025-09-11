@@ -3,3 +3,5 @@ log/
 model_final_LR_aug/
 model_whisper_L_aug/
 model_whisper_R_aug/
+result/*
+!result/.gitkeep
