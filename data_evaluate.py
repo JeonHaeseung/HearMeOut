@@ -54,13 +54,13 @@ def evaluate(cfg: DictConfig) -> None:
     """Evaluate the predictions against the ground truth correctness values"""
 
     # Load the intelligibility dataset records
-    with open(cfg.demo_train_metadata, encoding="utf-8") as fp:
+    with open(cfg.groud_truth_dev, encoding="utf-8") as fp:
         records = json.load(fp)
-    record_index = {record["signal"]: record for record in records}
+    record_index = {record["signal_encoded"]: record for record in records}
 
     # Load the predictions
     df = pd.read_csv(
-        cfg.demo_train_predict_file,
+        cfg.dev_predict_file,
         names=["signal", "predicted"],
         header=0,
     )
@@ -70,20 +70,10 @@ def evaluate(cfg: DictConfig) -> None:
     # Compute and report the scores
     scores = compute_scores(df["predicted"], df["correctness"])
 
-    with open(cfg.demo_train_eval_file, "a", encoding="utf-8") as fp:
+    with open(cfg.dev_eval_file, "a", encoding="utf-8") as fp:
         fp.write(json.dumps(scores) + "\n")
-
-    # Output the scores to the console
-    avg_scores = defaultdict(float)
-
-    for score in scores:
-        for key, value in score.items():
-            avg_scores[key] += value
-
-    for key in avg_scores:
-        avg_scores[key] /= len(scores)
-
-    print(dict(avg_scores))
+    
+    print(scores)
 
 
 if __name__ == "__main__":
