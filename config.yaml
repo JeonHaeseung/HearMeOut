@@ -1,11 +1,12 @@
 # 코드 루트 경로
-code_root: /home/cathyjeon/ALL_EnTrans_MODEL/EnTrans       # 변경 필수
+code_root: /path/to/your/code       # 변경 필수
 
 # 데이터 루트 경로
 clarity_data_root: /scratch/CPC_data/CPC3/clarity_CPC3_data
 
 # whisper feature 경로
 feature_root: /scratch/CPC_data/CPC3/clarity_CPC3_data/whisper
+feature_aug_root: /scratch/CPC_data/CPC3/clarity_CPC3_data/whisper_aug
 
 # 위스퍼 모델 저장 경로
 model_whisper_root: ${code_root}/model_whisper
@@ -17,14 +18,22 @@ model_final_LR_root: ${code_root}/model_final_LR
 
 # 예측 파일 저장 경로
 dev_predict_file: ${code_root}/result/dev_predict.csv
+dev_eval_file: ${code_root}/result/dev_predict.jsonl
+eval_predict_file: ${code_root}/result/eval_predict.csv
+eval_eval_file: ${code_root}/result/eval_predict.jsonl
 demo_train_predict_file: ${code_root}/result/demo_train_predict.csv
 demo_train_eval_file: ${code_root}/result/demo_train_predict.jsonl
+
+# 정답 파일 경로
+groud_truth_dev: /scratch/CPC_data/CPC3/clarity_CPC3_data/clarity_data/internal/cpc3_dev_internal.json
+groud_truth_eval: /scratch/CPC_data/CPC3/clarity_CPC3_data/clarity_data/internal/cpc3_eval_internal.json
 
 # 데이터들 경로
 dataset: clarity_demo_data          # 테스트용
 split: train
 
 aug_dataset: ${clarity_data_root}/clarity_data/aug
+aug_metadata: /scratch2/clarity/whisper/dataJson/CPC3_train_text.json
 aug_signals: signals
 
 train_dataset: ${clarity_data_root}/clarity_data/train
@@ -41,9 +50,6 @@ demo_train_dataset: ${clarity_data_root}/clarity_demo_data/train
 demo_train_metadata: ${clarity_data_root}/clarity_demo_data/metadata/CPC3.train.json
 demo_train_references: references
 demo_train_signals: signals
-
-aug_dataset: ${clarity_data_root}/aug
-aug_signals: signals
 
 # 모델 설정들
 sample_rate: 16000
