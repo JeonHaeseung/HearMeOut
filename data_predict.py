@@ -19,7 +19,7 @@ import torch.nn as nn
 
 import numpy as np
 import pandas as pd
-from model_ete_2 import WhisperEncoderRegressor
+from model_ete_transformer import WhisperEncoderRegressor
 from transformers import WhisperFeatureExtractor
 from utils.file_io import read_signal
 
@@ -27,7 +27,7 @@ os.environ["HYDRA_FULL_ERROR"] = "7"
 
 
 def set_device():
-    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -73,7 +73,7 @@ def load_dataset_batch(cfg, file_paths, device):
 def load_model(cfg):
     # load the pre-trained checkpoints
     model = WhisperEncoderRegressor(cfg.model_L_whisper_root, cfg.model_R_whisper_root)  # 반드시 같은 구조여야 함
-    model.load_state_dict(torch.load(os.path.join(cfg.model_final_LR_new_sigmoid_root, "model_final.pth")))
+    model.load_state_dict(torch.load(os.path.join(cfg.model_final_LR_root, "model_final_e5.pth")))
     return model
 
 

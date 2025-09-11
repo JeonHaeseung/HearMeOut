@@ -21,45 +21,31 @@ random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 
 
-def add_white_noise(original_audio):
+def add_white_noise(y: np.ndarray) -> np.ndarray:
     # https://www.kaggle.com/code/kaerunantoka/birdclef2022-use-2nd-label-f0
-    white_noise = np.random.randn(len(original_audio)) * 0.005
-    augmented_audio = original_audio + white_noise
-    return augmented_audio
+    white_noise = np.random.randn(*y.shape) * 0.005
+    return y + white_noise
 
 
-# def color_noise(original_audio):
-#     # https://www.kaggle.com/code/kaerunantoka/birdclef2022-use-2nd-label-f0
-#     pink_noise = cn.powerlaw_psd_gaussian(1, len(original_audio))
-#     augmented_audio = original_audio + pink_noise
-#     return augmented_audio
-
-
-# def background_noise(original_audio):
-#     # Load background noise from another audio file
-#     background_noise, sample_rate = librosa.load("background_noise.wav")
-#     augmented_audio = original_audio + background_noise
-#     return augmented_audio
-
-
-def time_shift(original_audio):
+def time_shift(y: np.ndarray) -> np.ndarray:
     # https://www.kaggle.com/code/CVxTz/audio-data-augmentation/notebook
     shift = np.random.randint(3000, 5000 + 1)
-    augmented_audio = np.roll(original_audio, shift)
-    return augmented_audio
+    return np.roll(y, shift, axis=1)
 
 
-def change_speed(original_audio):
+def change_speed(y: np.ndarray) -> np.ndarray:
     rate = np.random.uniform(0.95, 1.05)
-    augmented_audio = librosa.effects.time_stretch(original_audio, rate=rate)
-    return augmented_audio
+    chs = [librosa.effects.time_stretch(y[c], rate=rate) for c in range(y.shape[0])]
+    L = min(map(len, chs))
+    return np.stack([ch[:L] for ch in chs], axis=0)
 
 
-def change_pitch(original_audio, sr):
+def change_pitch(y: np.ndarray, sr: int) -> np.ndarray:
     # https://www.kaggle.com/code/CVxTz/audio-data-augmentation/notebook
     n_steps = np.random.randint(1, 4 + 1)
-    augmented_audio = librosa.effects.pitch_shift(original_audio, sr=sr, n_steps=n_steps)
-    return augmented_audio
+    chs = [librosa.effects.pitch_shift(y[c], sr=sr, n_steps=n_steps) for c in range(y.shape[0])]
+    L = min(map(len, chs))
+    return np.stack([ch[:L] for ch in chs], axis=0)
 
 
 def augment_once(y: np.ndarray, sr: int) -> np.ndarray:
@@ -114,14 +100,14 @@ def main(cfg: DictConfig):
 
     for sig in tqdm(targets, desc="Augmenting", unit="file"):
         in_path = os.path.join(ORIG_DIR, f"{sig}.wav")
-        y, sr = librosa.load(in_path, sr=None, mono=True)
+        y, sr = librosa.load(in_path, sr=None, mono=False) # 양이음 채널 유지해야 함
         start_n = next_aug_index(AUG_DIR, sig)
 
         # 각 파일당 2개씩 augmentation 생성
         for j in range(2):
             y_aug = augment_once(y, sr)
             out_path = os.path.join(AUG_DIR, f"{sig}_aug{start_n + j}.wav")
-            sf.write(out_path, y_aug, sr, subtype="PCM_16")
+            sf.write(out_path, y_aug.T, sr, subtype="PCM_16")
 
 
 if __name__ == "__main__":

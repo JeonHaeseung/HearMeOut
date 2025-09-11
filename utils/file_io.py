@@ -11,7 +11,7 @@ import soundfile
 from numpy import ndarray
 from soundfile import SoundFile
 
-from clarity.utils.signal_processing import resample
+from utils.signal_processing import resample
 
 # Function for reading and writing jsonl files
 
