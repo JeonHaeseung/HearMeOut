@@ -1,6 +1,9 @@
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 
 import os
 import json
@@ -73,6 +76,8 @@ def process_file(wav, metadata_path, sample_rate):
         signal_array = signal_array[:, 1]   # 오른쪽 채널
 
     signal_name = Path(wav).stem
+    signal_name = signal_name.split("_aug")[0]
+
     signal_sentence = read_response(metadata_path=metadata_path, signal_name=signal_name)
     signal_point = {
         "audio": {
@@ -96,9 +101,9 @@ def process_file(wav, metadata_path, sample_rate):
 # }
 #MARK: 데이터 로드
 def load_dataset(cfg):
-    wavs_ori = glob.glob(os.path.join(cfg.train_dataset, cfg.train_signals, "*.wav"), recursive=True)
     wavs_aug = glob.glob(os.path.join(cfg.aug_dataset, cfg.aug_signals, "*.wav"), recursive=True)
-    wavs = wavs_ori + wavs_aug
+    wavs_ori = glob.glob(os.path.join(cfg.train_dataset, cfg.train_signals, "*.wav"), recursive=True)
+    wavs = wavs_aug + wavs_ori
 
     if N_SAMPLES is not None:
         wavs = wavs[:N_SAMPLES]
@@ -107,7 +112,7 @@ def load_dataset(cfg):
     num_processes = multiprocessing.cpu_count()
     process_file_args = partial(
                     process_file, 
-                    metadata_path=cfg.train_metadata, 
+                    metadata_path=cfg.aug_metadata, 
                     sample_rate=cfg.sample_rate)
     
     with multiprocessing.Pool(num_processes) as pool:
@@ -189,7 +194,7 @@ def train_model(cfg, signal_feature, feature_extractor, tokenizer, processor, mo
         decoder_start_token_id=model.config.decoder_start_token_id,
     )
 
-    whipser_save_path = f"{cfg.model_whisper_root}_{SETTING}"
+    whipser_save_path = f"{cfg.model_whisper_root}_{SETTING}_aug"
     print(whipser_save_path)
 
     training_args = Seq2SeqTrainingArguments(
@@ -216,7 +221,7 @@ def train_model(cfg, signal_feature, feature_extractor, tokenizer, processor, mo
 
     # 일단 작은 버전으로 테스트
     # training_args = Seq2SeqTrainingArguments(
-    #     output_dir=cfg.model_poc_root,  # change to a repo name of your choice
+    #     output_dir=whipser_save_path,  # change to a repo name of your choice
     #     per_device_train_batch_size=512,
     #     gradient_accumulation_steps=1,  # increase by 2x for every 2x decrease in batch size
     #     learning_rate=1e-5,
@@ -256,7 +261,7 @@ def train_model(cfg, signal_feature, feature_extractor, tokenizer, processor, mo
 
 
 
-@hydra.main(config_path=".", config_name="config", version_base=None)
+@hydra.main(config_path="..", config_name="config", version_base=None)
 def main(cfg: DictConfig):
     whipser_save_path = f"{cfg.model_whisper_root}_{SETTING}_aug"
     os.makedirs(whipser_save_path, exist_ok=True)
