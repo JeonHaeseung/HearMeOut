@@ -29,10 +29,11 @@ logger = logging.getLogger(__name__)
 import hydra
 from omegaconf import DictConfig
 
-
+ASR_MODEL = "openai/whisper-small"
 N_SAMPLES = None  # None for total
 manager = Manager()
 signal_manager = manager.list()
+METHOD = "WN" # WN, TS, CS, CP
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -43,8 +44,8 @@ def read_response(metadata_path, signal_name):
         data = json.load(f)
     for record in data:
         if record["signal"] == signal_name:
-            return record["correctness"] / 100.0
-    return None
+            return record["correctness"] / 100.0, record["response"]
+    return None, None
 
 
 def process_file(wav, metadata_path, sample_rate):
@@ -55,7 +56,7 @@ def process_file(wav, metadata_path, sample_rate):
     signal_name = Path(wav).stem
     signal_name = signal_name.split("_aug")[0]
 
-    correctness = read_response(metadata_path, signal_name)
+    correctness, signal_sentence = read_response(metadata_path, signal_name)
 
     signal_point = {
         "audio": {
@@ -65,6 +66,7 @@ def process_file(wav, metadata_path, sample_rate):
             "sampling_rate": sample_rate,
         },
         "correctness": correctness,
+        "sentence": signal_sentence,
     }
     signal_manager.append(signal_point)
 
@@ -81,14 +83,14 @@ def prepare_dataset(batch, L_feature_extractor, R_feature_extractor):
 
 
 def load_dataset(cfg):
-    wavs_aug = glob.glob(os.path.join(cfg.aug_dataset, cfg.aug_signals, "*.wav"), recursive=True)
+    wavs_aug = glob.glob(os.path.join(f"{cfg.aug_dataset}_{METHOD}", cfg.aug_signals, "*.wav"), recursive=True)
     wavs_ori = glob.glob(os.path.join(cfg.train_dataset, cfg.train_signals, "*.wav"), recursive=True)
     wavs = wavs_aug + wavs_ori
 
     if N_SAMPLES is not None:
         wavs = wavs[:N_SAMPLES]
 
-    logger.info(f"Found {len(wavs)} .wav files")
+    logger.info(f"Found aug {len(wavs_aug)} ({cfg.aug_dataset}_{METHOD}), ori {len(wavs_ori)} .wav files")
 
     process_file_args = partial(
         process_file,
@@ -121,20 +123,23 @@ def extract_features(dataset_dict, L_feature_extractor, R_feature_extractor):
 
 @hydra.main(config_path="..", config_name="config", version_base=None)
 def main(cfg: DictConfig):
-    os.makedirs(f"{cfg.feature_root}_aug", exist_ok=True)
-    print(f"{cfg.feature_root}_aug")
-    print(f"{cfg.model_L_whisper_root}_aug")
-    print(f"{cfg.model_R_whisper_root}_aug")
+    feature_save_root = f"{cfg.feature_root}_aug_{METHOD}"
+    os.makedirs(feature_save_root, exist_ok=True)
+    print(feature_save_root)
+    # print(f"{cfg.model_L_whisper_root}_aug")
+    # print(f"{cfg.model_R_whisper_root}_aug")
 
     logger.info("Loading Whisper feature extractors")
-    L_extractor = WhisperFeatureExtractor.from_pretrained(f"{cfg.model_L_whisper_root}_aug")
-    R_extractor = WhisperFeatureExtractor.from_pretrained(f"{cfg.model_R_whisper_root}_aug")
+    # L_extractor = WhisperFeatureExtractor.from_pretrained(f"{cfg.model_L_whisper_root}_aug")
+    # R_extractor = WhisperFeatureExtractor.from_pretrained(f"{cfg.model_R_whisper_root}_aug")
+    L_extractor = WhisperFeatureExtractor.from_pretrained(ASR_MODEL)
+    R_extractor = WhisperFeatureExtractor.from_pretrained(ASR_MODEL)
 
     dataset_dict = load_dataset(cfg)
     feature_dataset = extract_features(dataset_dict, L_extractor, R_extractor)
 
-    logger.info(f"Saving dataset to {cfg.feature_root}_aug")
-    feature_dataset.save_to_disk(f"{cfg.feature_root}_aug")
+    logger.info(f"Saving dataset to {feature_save_root}")
+    feature_dataset.save_to_disk(feature_save_root)
 
     logger.info("Dataset saved successfully")
 

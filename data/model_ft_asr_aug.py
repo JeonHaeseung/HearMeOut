@@ -35,9 +35,10 @@ from model_ft_data import DataCollatorSpeechSeq2SeqWithPadding
 
 N_SAMPLES = None         # None for total
 ASR_MODEL = "openai/whisper-small"
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 os.environ["HYDRA_FULL_ERROR"] = "1"
 SETTING = "R"           # R, L
+METHOD = "NONE" # WN, TS, CS, CP
 
 manager = Manager()
 signal_manager = manager.list()
@@ -101,7 +102,7 @@ def process_file(wav, metadata_path, sample_rate):
 # }
 #MARK: 데이터 로드
 def load_dataset(cfg):
-    wavs_aug = glob.glob(os.path.join(cfg.aug_dataset, cfg.aug_signals, "*.wav"), recursive=True)
+    wavs_aug = glob.glob(os.path.join(f"{cfg.aug_dataset}_{METHOD}", cfg.aug_signals, "*.wav"), recursive=True)
     wavs_ori = glob.glob(os.path.join(cfg.train_dataset, cfg.train_signals, "*.wav"), recursive=True)
     wavs = wavs_aug + wavs_ori
 
@@ -194,7 +195,7 @@ def train_model(cfg, signal_feature, feature_extractor, tokenizer, processor, mo
         decoder_start_token_id=model.config.decoder_start_token_id,
     )
 
-    whipser_save_path = f"{cfg.model_whisper_root}_{SETTING}_aug"
+    whipser_save_path = f"{cfg.model_whisper_root}_{SETTING}_aug_{METHOD}"
     print(whipser_save_path)
 
     training_args = Seq2SeqTrainingArguments(
@@ -210,7 +211,7 @@ def train_model(cfg, signal_feature, feature_extractor, tokenizer, processor, mo
         per_device_eval_batch_size=16,
         predict_with_generate=True,
         generation_max_length=225,
-        save_steps=50,
+        save_steps=100,
         eval_steps=50,
         logging_steps=10,
         report_to=["tensorboard"],
@@ -263,7 +264,7 @@ def train_model(cfg, signal_feature, feature_extractor, tokenizer, processor, mo
 
 @hydra.main(config_path="..", config_name="config", version_base=None)
 def main(cfg: DictConfig):
-    whipser_save_path = f"{cfg.model_whisper_root}_{SETTING}_aug"
+    whipser_save_path = f"{cfg.model_whisper_root}_{SETTING}_aug_{METHOD}"
     os.makedirs(whipser_save_path, exist_ok=True)
     print(whipser_save_path)
     feature_extractor, tokenizer, processor, model = load_model()
